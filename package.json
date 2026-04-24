@@ -1,0 +1,40 @@
+{
+  "name": "sri-vallavan",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "chartjs-plugin-datalabels": "^2.2.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
+    "pg": "^8.20.0",
+    "react": "^18.0.0",
+    "react-chartjs-2": "^5.3.1",
+    "react-dom": "^18.0.0",
+    "react-scripts": "^5.0.1",
+    "react-select": "^5.10.2",
+    "xlsx": "^0.18.5"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "dev": "BROWSER=none react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
