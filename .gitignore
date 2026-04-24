@@ -1,0 +1,6 @@
+# Node modules and cache should not be committed to git
+node_modules/
+.cache/
+*.log
+.env
+.DS_Store
