@@ -31,11 +31,13 @@ export function addCollectionEndpoint(app, pool) {
         return res.status(400).json({ error: `Customer name not found for customer_id: ${customer_id}` });
       }
 
+      // Convert empty string for collection_amount to null
+      const collectionAmountVal = collection_amount === '' ? null : collection_amount;
       // Insert the new collection with generated collection_id and customer_name
       const result = await pool.query(
         `INSERT INTO collections (collection_id, customer_id, customer_name, loan_id, collection_date, collection_amount, collection_type, collected_by_name)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-        [collection_id, customer_id, customer_name, loan_id, collection_date, collection_amount, collection_type, collected_by_name]
+        [collection_id, customer_id, customer_name, loan_id, collection_date, collectionAmountVal, collection_type, collected_by_name]
       );
 
       // Update the serials table with the new last_number

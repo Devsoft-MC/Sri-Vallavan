@@ -1,3 +1,4 @@
+
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -17,13 +18,23 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
+// (Removed duplicate /api/collections endpoint. Only the paginated/filtering endpoint remains below.)
+
 import { addCollectionEndpoint } from './routes/addCollection.js';
+import { addLoanEndpoint } from './routes/addLoan.js';
 import { editCollectionEndpoint } from './routes/editCollection.js';
 import { deleteCollectionEndpoint } from './routes/deleteCollection.js';
+import { loansListEndpoint } from './routes/loansList.js';
+import { loanTypesEndpoint } from './routes/loanTypes.js';
+import { updateLoanStatusEndpoint } from './routes/updateLoanStatus.js';
 // Register the addCollection, editCollection, and deleteCollection endpoints after app and pool are initialized
 addCollectionEndpoint(app, pool);
+addLoanEndpoint(app, pool);
 editCollectionEndpoint(app, pool);
 deleteCollectionEndpoint(app, pool);
+loansListEndpoint(app, pool);
+loanTypesEndpoint(app, pool);
+updateLoanStatusEndpoint(app, pool);
 
 app.get('/api/loans-by-type', async (req, res) => {
   try {
@@ -102,52 +113,58 @@ app.get('/api/test', async (req, res) => {
 app.get('/api/collections', async (req, res) => {
   try {
     const { from, to, text, collected_by } = req.query;
-    if (from || to || text || collected_by) {
-      let where = [];
-      let params = [];
-      let idx = 1;
-      if (from) {
-        where.push(`collection_date >= $${idx++}`);
-        params.push(from);
-      }
-      if (to) {
-        where.push(`collection_date <= $${idx++}`);
-        params.push(to);
-      }
-      if (text) {
-        where.push(`(
-          collection_id ILIKE $${idx} OR
-          customer_id ILIKE $${idx} OR
-          customer_name ILIKE $${idx} OR
-          loan_id ILIKE $${idx} OR
-          collection_type ILIKE $${idx} OR
-          collected_by_name ILIKE $${idx}
-        )`);
-        params.push(`%${text}%`);
-        idx++;
-      }
-      if (collected_by) {
-        where.push(`collected_by_name = $${idx++}`);
-        params.push(collected_by);
-      }
-      const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
-      const query = `
-        SELECT collection_id, customer_id, customer_name, loan_id, collection_date, collection_amount, collection_type, collected_by_name
-        FROM collections
-        ${whereClause}
-        ORDER BY collection_date DESC
-      `;
-      const result = await pool.query(query, params);
-      res.json(result.rows);
-      return;
+    let where = [];
+    let params = [];
+    let idx = 1;
+    if (from) {
+      where.push(`collection_date >= $${idx++}`);
+      params.push(from);
     }
-    // Default: latest 100
-    const result = await pool.query(`
+    if (to) {
+      where.push(`collection_date <= $${idx++}`);
+      params.push(to);
+    }
+    if (text) {
+      where.push(`(
+        collection_id ILIKE $${idx} OR
+        customer_id ILIKE $${idx} OR
+        customer_name ILIKE $${idx} OR
+        loan_id ILIKE $${idx} OR
+        collection_type ILIKE $${idx} OR
+        collected_by_name ILIKE $${idx}
+      )`);
+      params.push(`%${text}%`);
+      idx++;
+    }
+    if (collected_by) {
+      where.push(`collected_by_name = $${idx++}`);
+      params.push(collected_by);
+    }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    // Special case: if text === '%', treat as request for all records (no limit, no filter)
+    let limitClause = '';
+    let finalWhereClause = whereClause;
+    if (text === '%') {
+      // Remove text filter and LIMIT
+      finalWhereClause = '';
+      limitClause = '';
+      // Remove last param (text) from params if present
+      if (params.length && params[params.length - 1] === '%') {
+        params.pop();
+      }
+    } else {
+      // If any filter is applied, return all matching records
+      // If no filter, return only latest 100 records
+      limitClause = (from || to || text || collected_by) ? '' : 'LIMIT 100';
+    }
+    const query = `
       SELECT collection_id, customer_id, customer_name, loan_id, collection_date, collection_amount, collection_type, collected_by_name
       FROM collections
+      ${finalWhereClause}
       ORDER BY collection_date DESC
-      LIMIT 100
-    `);
+      ${limitClause}
+    `;
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
