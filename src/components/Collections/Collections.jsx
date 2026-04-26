@@ -177,12 +177,26 @@ const Collections = () => {
 				? `http://localhost:4000/api/collections?${params.toString()}`
 				: 'http://localhost:4000/api/collections';
 			fetch(url)
-				.then(res => res.json())
-				.then(json => {
+				.then(async res => {
+					if (!res.ok) {
+						let errMsg = `HTTP ${res.status}`;
+						try {
+							const errJson = await res.json();
+							if (errJson && errJson.error) errMsg = errJson.error;
+						} catch {}
+						setData([]);
+						setLoading(false);
+						setFormError(`Error fetching collections: ${errMsg}`);
+						return;
+					}
+					const json = await res.json();
 					setData(Array.isArray(json) ? json : []);
 					setLoading(false);
 				})
-				.catch(() => setLoading(false));
+				.catch((err) => {
+					setLoading(false);
+					setFormError(`Error fetching collections: ${err.message}`);
+				});
 		};
 
 		// Open modal for add or edit
@@ -362,6 +376,13 @@ const Collections = () => {
 
 
 		if (loading) return null;
+		if (formError) {
+			return (
+				<div style={{ color: 'red', background: '#fee', padding: 16, margin: 24, border: '1px solid #f99', borderRadius: 6 }}>
+					{formError}
+				</div>
+			);
+		}
 
 		// Calculate sum total for collected amount
 		const totalCollected = data.reduce((sum, row) => sum + (parseFloat(row.collection_amount) || 0), 0);

@@ -6,7 +6,14 @@ import pkg from 'pg';
 const { Pool } = pkg;
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://sahiproducts.com',
+    'https://www.sahiproducts.com',
+    'http://localhost:3000'
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 const pool = new Pool({
@@ -43,6 +50,7 @@ app.get('/api/loans-by-type', async (req, res) => {
     const counts = result.rows.map(row => parseInt(row.loan_count, 10));
     res.json({ types, counts });
   } catch (err) {
+    console.error('Error in /api/collections:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -145,13 +153,10 @@ app.get('/api/collections', async (req, res) => {
     let limitClause = '';
     let finalWhereClause = whereClause;
     if (text === '%') {
-      // Remove text filter and LIMIT
+      // Remove all filters and params for full export
       finalWhereClause = '';
       limitClause = '';
-      // Remove last param (text) from params if present
-      if (params.length && params[params.length - 1] === '%') {
-        params.pop();
-      }
+      params = [];
     } else {
       // If any filter is applied, return all matching records
       // If no filter, return only latest 100 records

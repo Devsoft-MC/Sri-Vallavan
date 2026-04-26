@@ -35,17 +35,24 @@ const Loans = () => {
 		       }
 
 			       // fetchAll: if true, fetch all collections (for refresh), else fetch limited (initial load)
-			       const fetchData = async (fetchAll = false) => {
-				       setLoading(true);
-				       try {
-					       setError(null);
-					       const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
-					       const [loansRes, collectionsRes] = await Promise.all([
-						       fetch(`${backendUrl}/api/loans`),
-						       fetch(fetchAll ? `${backendUrl}/api/collections?text=%` : `${backendUrl}/api/collections`),
-					       ]);
-					       if (!loansRes.ok) throw new Error('Failed to fetch /api/loans: ' + loansRes.status);
-					       if (!collectionsRes.ok) throw new Error('Failed to fetch /api/collections: ' + collectionsRes.status);
+				       const fetchData = async (fetchAll = false) => {
+					       setLoading(true);
+					       try {
+						       setError(null);
+						       const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+						       const [loansRes, collectionsRes] = await Promise.all([
+							       fetch(`${backendUrl}/api/loans`),
+							       fetch(fetchAll ? `${backendUrl}/api/collections?text=%` : `${backendUrl}/api/collections`),
+						       ]);
+						       if (!loansRes.ok) throw new Error('Failed to fetch /api/loans: ' + loansRes.status);
+						       if (!collectionsRes.ok) {
+							   let errMsg = 'Failed to fetch /api/collections: ' + collectionsRes.status;
+							   try {
+							       const errJson = await collectionsRes.json();
+							       if (errJson && errJson.error) errMsg = errJson.error;
+							   } catch {}
+							   throw new Error(errMsg);
+						       }
 						       const [loansData, collectionsData] = await Promise.all([
 							       loansRes.json(),
 							       collectionsRes.json(),
@@ -69,12 +76,12 @@ const Loans = () => {
 							 setLastHash(hashData(joined));
 							 setRefreshAlert(false);
 						       }
-				       } catch (err) {
-					       setError(err.message || 'Unknown error');
-					       setLoans([]);
-				       }
-				       setLoading(false);
-			       };
+					       } catch (err) {
+						       setError(err.message || 'Unknown error');
+						       setLoans([]);
+					       }
+					       setLoading(false);
+				       };
 
 			   useEffect(() => {
 										   fetchData(false); // initial load: limited
