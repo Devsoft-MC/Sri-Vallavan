@@ -173,9 +173,10 @@ const Collections = () => {
 			if (opts.toDate) params.append('to', opts.toDate);
 			if (opts.text) params.append('text', opts.text);
 			if (opts.collectedBy) params.append('collected_by', opts.collectedBy);
+			const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
 			const url = params.toString()
-				? `http://localhost:4000/api/collections?${params.toString()}`
-				: 'http://localhost:4000/api/collections';
+				? `${backendUrl}/api/collections?${params.toString()}`
+				: `${backendUrl}/api/collections`;
 			fetch(url)
 				.then(async res => {
 					if (!res.ok) {

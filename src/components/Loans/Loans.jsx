@@ -34,72 +34,54 @@ const Loans = () => {
 			 return JSON.stringify(data);
 		       }
 
-			       // fetchAll: if true, fetch all collections (for refresh), else fetch limited (initial load)
-				       const fetchData = async (fetchAll = false) => {
-					       setLoading(true);
-					       try {
-						       setError(null);
-						       const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
-						       const [loansRes, collectionsRes] = await Promise.all([
-							       fetch(`${backendUrl}/api/loans`),
-							       fetch(fetchAll ? `${backendUrl}/api/collections?text=%` : `${backendUrl}/api/collections`),
-						       ]);
-						       if (!loansRes.ok) throw new Error('Failed to fetch /api/loans: ' + loansRes.status);
-						       if (!collectionsRes.ok) {
+				       // fetchAll: if true, fetch all collections (for refresh), else fetch limited (initial load)
+					       const fetchData = async () => {
+						       setLoading(true);
+						       try {
+							       setError(null);
+							       const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+							       const [loansRes, collectionsRes] = await Promise.all([
+								       fetch(`${backendUrl}/api/loans`),
+								       fetch(`${backendUrl}/api/collections`),
+							       ]);
+							       if (!loansRes.ok) throw new Error('Failed to fetch /api/loans: ' + loansRes.status);
+							       if (!collectionsRes.ok) {
 							   let errMsg = 'Failed to fetch /api/collections: ' + collectionsRes.status;
 							   try {
 							       const errJson = await collectionsRes.json();
 							       if (errJson && errJson.error) errMsg = errJson.error;
 							   } catch {}
 							   throw new Error(errMsg);
+							       }
+							       const [loansData, collectionsData] = await Promise.all([
+								       loansRes.json(),
+								       collectionsRes.json(),
+							       ]);
+							       const collectionMap = {};
+							       collectionsData.forEach(col => {
+								       if (!collectionMap[col.loan_id]) collectionMap[col.loan_id] = 0;
+								       collectionMap[col.loan_id] += parseFloat(col.collection_amount || 0);
+							       });
+							       const joined = loansData.map(loan => {
+								       const collected = collectionMap[loan.loan_id] || 0;
+								       const issueAmount = parseFloat(loan.issue_amount) || 0;
+								       return {
+									       ...loan,
+									       collected_amount: collected.toFixed(2),
+									       balance: (issueAmount - collected).toFixed(2),
+								       };
+							       });
+							       setLoans(joined);
+						       } catch (err) {
+							       setError(err.message || 'Unknown error');
+							       setLoans([]);
 						       }
-						       const [loansData, collectionsData] = await Promise.all([
-							       loansRes.json(),
-							       collectionsRes.json(),
-						       ]);
-						       const collectionMap = {};
-						       collectionsData.forEach(col => {
-							       if (!collectionMap[col.loan_id]) collectionMap[col.loan_id] = 0;
-							       collectionMap[col.loan_id] += parseFloat(col.collection_amount || 0);
-						       });
-						       const joined = loansData.map(loan => {
-							       const collected = collectionMap[loan.loan_id] || 0;
-							       const issueAmount = parseFloat(loan.issue_amount) || 0;
-							       return {
-								       ...loan,
-								       collected_amount: collected.toFixed(2),
-								       balance: (issueAmount - collected).toFixed(2),
-							       };
-						       });
-						       setLoans(joined);
-						       if (fetchAll) {
-							 setLastHash(hashData(joined));
-							 setRefreshAlert(false);
-						       }
-					       } catch (err) {
-						       setError(err.message || 'Unknown error');
-						       setLoans([]);
-					       }
-					       setLoading(false);
-				       };
+						       setLoading(false);
+					       };
 
 			   useEffect(() => {
-										   fetchData(false); // initial load: limited
-										   // Poll for background changes every 10 seconds
-							 const interval = setInterval(async () => {
-								 const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
-								 try {
-									 const loansRes = await fetch(`${backendUrl}/api/loans`);
-									 if (!loansRes.ok) return;
-									 const loansData = await loansRes.json();
-									 const hash = hashData(loansData);
-									 if (lastHash && hash !== lastHash) {
-										 setRefreshAlert(true);
-									 }
-								 } catch {}
-							 }, 10000);
-							 return () => clearInterval(interval);
-			 }, [lastHash]);
+					   fetchData(); // initial load only, no polling
+			   }, []);
 
 			 // Filter loans by status and filter text
 			 const filteredLoans = useMemo(() => {
@@ -164,19 +146,16 @@ const Loans = () => {
 		return ( 
 				<div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#fff' }}> 
 													 <LoansHeader 
-															 filterLabel={FILTERS[filterIdx].label} 
-															 onFilterToggle={handleFilterToggle} 
-															 onAddLoan={() => setShowAddLoan(true)} 
-															 onCloseLoan={() => selectedLoan && setShowEditLoanStatus(true)}
-															 closeLoanDisabled={!selectedLoan || (selectedLoan && (selectedLoan.status || '').toLowerCase() === 'closed')} 
-															 filterText={filterText}
-															 onFilterTextChange={setFilterText}
-															       onRefresh={async () => {
-																       await fetchData(true); // fetch all on refresh
-																       setRefreshAlert(false); // GREEN after refresh
-															       }}
-															 refreshAlert={refreshAlert}
-													 /> 
+													 filterLabel={FILTERS[filterIdx].label} 
+													 onFilterToggle={handleFilterToggle} 
+													 onAddLoan={() => setShowAddLoan(true)} 
+													 onCloseLoan={() => selectedLoan && setShowEditLoanStatus(true)}
+													 closeLoanDisabled={!selectedLoan || (selectedLoan && (selectedLoan.status || '').toLowerCase() === 'closed')} 
+													 filterText={filterText}
+													 onFilterTextChange={setFilterText}
+													 onRefresh={undefined}
+													 refreshAlert={false}
+												 /> 
 						   {showAddLoan && ( 
 							   <AddLoanForm onClose={() => setShowAddLoan(false)} /> 
 						   )} 

@@ -23,18 +23,20 @@ const LoansHeader = ({ filterLabel, onFilterToggle, onAddLoan, onCloseLoan, clos
       onChange={e => onFilterTextChange(e.target.value)}
       style={{ padding: '8px 12px', borderRadius: 4, border: '1px solid #ccc', minWidth: 180 }}
     />
+
     <button
       style={{
         padding: '8px 18px',
-        background: refreshAlert ? '#d32f2f' : '#43a047',
-        color: '#fff',
+        background: '#ccc',
+        color: '#888',
         border: 'none',
         borderRadius: 4,
         fontWeight: 600,
-        outline: refreshAlert ? '2px solid #d32f2f' : undefined
+        cursor: 'not-allowed',
+        opacity: 0.6
       }}
-      onClick={onRefresh}
-      title={refreshAlert ? 'Data changed in background. Click to refresh.' : 'Refresh loan list'}
+      disabled
+      title="Refresh temporarily disabled for troubleshooting."
     >
       Refresh
     </button>
