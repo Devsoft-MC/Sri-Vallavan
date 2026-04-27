@@ -25,6 +25,11 @@ const formStyle = {
 };
 
 
+const backendUrl =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:5000"
+    : "https://sahiproducts.com";
+
 function EditLoanStatusForm({ loan, onClose }) {
   const [status, setStatus] = useState(loan.status || 'Open');
   const [interestReceived, setInterestReceived] = useState(
@@ -56,7 +61,6 @@ function EditLoanStatusForm({ loan, onClose }) {
     setError(null);
     setSuccess(null);
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
       const res = await fetch(`${backendUrl}/api/loans/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

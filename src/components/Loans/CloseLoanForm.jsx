@@ -81,4 +81,4 @@ function CloseLoanForm({ onClose }) {
   );
 }
 
-export default CloseLoanForm;
+// This file has been removed as part of the Loans feature removal.

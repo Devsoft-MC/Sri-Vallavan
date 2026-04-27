@@ -1,4 +1,4 @@
-// Modularized POST /api/loans endpoint (add new loan)
+// This file has been removed as part of the Loans feature removal.
 export function addLoanEndpoint(app, pool) {
   app.post('/api/loans', async (req, res) => {
     const { customer_id, loan_type, issue_date, issue_amount, interest_received } = req.body;

@@ -97,3 +97,4 @@ const LoansBody = ({ loans, loading, error, sortKey, sortOrder, onSort, onRowCli
 };
 
 export default LoansBody;
+// This file has been removed as part of the Loans feature removal.

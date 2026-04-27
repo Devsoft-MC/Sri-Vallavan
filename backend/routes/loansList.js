@@ -1,5 +1,5 @@
 
-// Modularized GET /api/loans endpoint (loans list)
+// This file has been removed as part of the Loans feature removal.
 export function loansListEndpoint(app, pool) {
   app.get('/api/loans', async (req, res) => {
     try {

@@ -6,7 +6,7 @@ const columns = [
 	{ label: 'Collection ID', key: 'collection_id', style: { minWidth: 110, maxWidth: 130, width: 120 } },
 	{ label: 'Customer ID', key: 'customer_id', style: { minWidth: 90, maxWidth: 110, width: 100 } },
 	{ label: 'Customer Name', key: 'customer_name', style: { minWidth: 180, maxWidth: 260, width: 220 } },
-	{ label: 'Loan ID', key: 'loan_id', style: { minWidth: 90, maxWidth: 110, width: 100 } },
+	// { label: 'Loan ID', key: 'loan_id', style: { minWidth: 90, maxWidth: 110, width: 100 } },
 	{ label: 'Collected Date', key: 'collection_date', style: { minWidth: 120, maxWidth: 140, width: 130 } },
 	{ label: 'Collected Amount', key: 'collection_amount', style: { minWidth: 120, maxWidth: 140, width: 130, textAlign: 'right' } },
 	{ label: 'Collection Type', key: 'collection_type', style: { minWidth: 120, maxWidth: 140, width: 130 } },
@@ -34,6 +34,12 @@ const formBoxStyle = {
 	maxWidth: 700,
 	boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
 };
+
+// Set backend URL based on environment
+const backendUrl =
+	process.env.NODE_ENV === "development"
+		? "http://localhost:4000"
+		: "https://sahiproducts.com";
 
 // Helper to get yesterday's date in YYYY-MM-DD format
 function getYesterday() {
@@ -173,7 +179,6 @@ const Collections = () => {
 			if (opts.toDate) params.append('to', opts.toDate);
 			if (opts.text) params.append('text', opts.text);
 			if (opts.collectedBy) params.append('collected_by', opts.collectedBy);
-			const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
 			const url = params.toString()
 				? `${backendUrl}/api/collections?${params.toString()}`
 				: `${backendUrl}/api/collections`;
@@ -209,7 +214,7 @@ const Collections = () => {
 						return;
 					}
 					try {
-						const res = await fetch(`http://localhost:4000/api/collections/${selectedRow.collection_id}`, {
+						const res = await fetch(`${backendUrl}/api/collections/${selectedRow.collection_id}`, {
 							method: 'DELETE',
 						});
 						if (!res.ok) throw new Error('Failed to delete collection');
@@ -259,10 +264,10 @@ const Collections = () => {
 	// Fetch customers, collection types, and employees when modal opens
 	useEffect(() => {
 		if (showModal) {
-			fetch('http://localhost:4000/api/customers')
+			fetch(`${backendUrl}/api/customers`)
 				.then(res => res.json())
 				.then(json => setCustomers(Array.isArray(json) ? json : []));
-			fetch('http://localhost:4000/api/collection-types')
+			fetch(`${backendUrl}/api/collection-types`)
 				.then(res => res.json())
 				.then(json => setCollectionTypes(Array.isArray(json) ? json : []));
 		}
@@ -270,7 +275,7 @@ const Collections = () => {
 
 	// Always fetch employees for filter combo box on mount
 	useEffect(() => {
-		fetch('http://localhost:4000/api/employees')
+		fetch(`${backendUrl}/api/employees`)
 			.then(res => res.json())
 			.then(json => setEmployees(Array.isArray(json) ? json : []));
 	}, []);
@@ -306,7 +311,7 @@ const Collections = () => {
 		if (customer_id) {
 			setLoansLoading(true);
 			try {
-				const res = await fetch(`http://localhost:4000/api/loans-by-customer/${customer_id}`);
+				const res = await fetch(`${backendUrl}/api/loans-by-customer/${customer_id}`);
 				const json = await res.json();
 				setLoans(Array.isArray(json) ? json : []);
 			} catch (err) {
@@ -331,7 +336,7 @@ const Collections = () => {
 				let res, dataResp;
 				if (isEditMode) {
 					// PUT or PATCH to backend (assume endpoint exists)
-					res = await fetch(`http://localhost:4000/api/collections/${form.collection_id}`, {
+					res = await fetch(`${backendUrl}/api/collections/${form.collection_id}`, {
 						method: 'PUT',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify(form),
@@ -350,7 +355,7 @@ const Collections = () => {
 					setSuccessMsg(`Collection updated! RV Number: ${dataResp.collection_id}`);
 				} else {
 					// POST to backend
-					res = await fetch('http://localhost:4000/api/collections', {
+					res = await fetch(`${backendUrl}/api/collections`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify(form),

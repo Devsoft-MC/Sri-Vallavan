@@ -4,8 +4,13 @@ import { Pie } from 'react-chartjs-2';
 const Dashboard = () => {
   const [chartData, setChartData] = useState(null);
 
+  const backendUrl =
+    process.env.NODE_ENV === "development"
+      ? "http://localhost:4000"
+      : "https://sahiproducts.com";
+
   useEffect(() => {
-    fetch('http://localhost:4000/api/loans-by-type')
+    fetch(`${backendUrl}/api/loans-by-type`)
       .then(res => res.json())
       .then(data => {
         setChartData({

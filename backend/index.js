@@ -5,16 +5,55 @@ import cors from 'cors';
 import pkg from 'pg';
 const { Pool } = pkg;
 
+
 const app = express();
-app.use(cors({
-  origin: [
-    'https://sahiproducts.com',
-    'https://www.sahiproducts.com',
-    'http://localhost:3000'
-  ],
-  credentials: true
-}));
+
+// Logging middleware to debug requests
+app.use((req, res, next) => {
+  console.log('Request:', req.method, req.url, 'Origin:', req.headers.origin);
+  next();
+});
+
+app.use(cors());
+
 app.use(express.json());
+
+// TEST: Move /api/data123 route to the top to rule out middleware/registration order issues
+app.get('/api/data123', async (req, res) => {
+  console.log('--- /api/data123 handler called ---');
+  try {
+    const { text } = req.query;
+    let where = [];
+    let params = [];
+    let idx = 1;
+    if (text) {
+      where.push(`(
+        l.loan_id ILIKE $${idx} OR
+        l.customer_id ILIKE $${idx} OR
+        c.customer_name ILIKE $${idx} OR
+        l.loan_type ILIKE $${idx}
+      )`);
+      params.push(`%${text}%`);
+      idx++;
+    }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const query = `
+      SELECT l.loan_id, l.customer_id, c.customer_name, l.loan_type, l.issue_date, l.issue_amount, l.interest_received, l.adjustment, l.status
+      FROM loans l
+      LEFT JOIN customers c ON l.customer_id = c.customer_id
+      ${whereClause}
+      ORDER BY l.loan_id DESC
+    `;
+    console.log('SQL Query:', query);
+    console.log('SQL Params:', params);
+    const result = await pool.query(query, params);
+    console.log('SQL Result:', result.rows.length, 'rows');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error in /api/loans:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 const pool = new Pool({
   user: process.env.PGUSER,
@@ -31,7 +70,7 @@ import { addCollectionEndpoint } from './routes/addCollection.js';
 import { addLoanEndpoint } from './routes/addLoan.js';
 import { editCollectionEndpoint } from './routes/editCollection.js';
 import { deleteCollectionEndpoint } from './routes/deleteCollection.js';
-import { loansListEndpoint } from './routes/loansList.js';
+//import { loansListEndpoint } from './routes/loansList.js';
 import { loanTypesEndpoint } from './routes/loanTypes.js';
 import { updateLoanStatusEndpoint } from './routes/updateLoanStatus.js';
 // Register the addCollection, editCollection, and deleteCollection endpoints after app and pool are initialized
@@ -39,35 +78,47 @@ addCollectionEndpoint(app, pool);
 addLoanEndpoint(app, pool);
 editCollectionEndpoint(app, pool);
 deleteCollectionEndpoint(app, pool);
-loansListEndpoint(app, pool);
+
+// Rewritten /api/loans endpoint (same style as /api/collections)
+app.get('/api/loans', async (req, res) => {
+  console.log('--- /api/loans handler called ---');
+  try {
+    const { text } = req.query;
+    let where = [];
+    let params = [];
+    let idx = 1;
+    if (text) {
+      where.push(`(
+        l.loan_id ILIKE $${idx} OR
+        l.customer_id ILIKE $${idx} OR
+        c.customer_name ILIKE $${idx} OR
+        l.loan_type ILIKE $${idx}
+      )`);
+      params.push(`%${text}%`);
+      idx++;
+    }
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const query = `
+      SELECT l.loan_id, l.customer_id, c.customer_name, l.loan_type, l.issue_date, l.issue_amount, l.interest_received, l.adjustment, l.status
+      FROM loans l
+      LEFT JOIN customers c ON l.customer_id = c.customer_id
+      ${whereClause}
+      ORDER BY l.loan_id DESC
+    `;
+    console.log('SQL Query:', query);
+    console.log('SQL Params:', params);
+    const result = await pool.query(query, params);
+    console.log('SQL Result:', result.rows.length, 'rows');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error in /api/loans:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 loanTypesEndpoint(app, pool);
 updateLoanStatusEndpoint(app, pool);
 
-app.get('/api/loans-by-type', async (req, res) => {
-  try {
-    const result = await pool.query("SELECT loan_type, COUNT(*) as loan_count FROM loans WHERE loan_type <> 'PL' AND loan_status_closed = false GROUP BY loan_type");
-    const types = result.rows.map(row => row.loan_type);
-    const counts = result.rows.map(row => parseInt(row.loan_count, 10));
-    res.json({ types, counts });
-  } catch (err) {
-    console.error('Error in /api/collections:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Endpoint to get open loans for a specific customer (for Add Collection form)
-app.get('/api/loans-by-customer/:customer_id', async (req, res) => {
-  const { customer_id } = req.params;
-  try {
-    const result = await pool.query(
-      "SELECT loan_id, loan_type FROM loans WHERE customer_id = $1 AND loan_status_closed = false",
-      [customer_id]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// Loans endpoints removed
 
 // Endpoint for customer count by category
 app.get('/api/customers-by-category', async (req, res) => {

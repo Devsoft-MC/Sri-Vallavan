@@ -1,3 +1,4 @@
+// This file has been removed as part of the Loans feature removal.
 import React from 'react';
 
 
